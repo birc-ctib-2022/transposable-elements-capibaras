@@ -1,19 +1,25 @@
 """A circular genome for simulating transposable elements."""
-
+from __future__ import annotations
 from abc import (
     # A tag that says that we can't use this class except by specialising it
     ABC,
     # A tag that says that this method must be implemented by a child class
     abstractmethod
 )
+from typing import (
+    Generic, TypeVar, Iterable,
+    Callable, Protocol
+)
 
+from typing import Type
 
 class Genome(ABC):
     """Representation of a circular enome."""
 
+
     def __init__(self, n: int):
         """Create a genome of size n."""
-        ...  # not implemented yet
+
 
     @abstractmethod
     def insert_te(self, pos: int, length: int) -> int:
@@ -29,7 +35,8 @@ class Genome(ABC):
 
         Returns a new ID for the transposable element.
         """
-        ...  # not implemented yet
+        ...
+
 
     @abstractmethod
     def copy_te(self, te: int, offset: int) -> int | None:
@@ -82,7 +89,8 @@ class Genome(ABC):
         represented with the character '-', active TEs with 'A', and disabled
         TEs with 'x'.
         """
-        ...  # not implemented yet
+        
+        return ''.join(self.genome)
 
 
 class ListGenome(Genome):
@@ -94,7 +102,7 @@ class ListGenome(Genome):
 
     def __init__(self, n: int):
         """Create a new genome with length n."""
-        ...  # FIXME
+
 
     def insert_te(self, pos: int, length: int) -> int:
         """
@@ -109,8 +117,9 @@ class ListGenome(Genome):
 
         Returns a new ID for the transposable element.
         """
-        ...  # FIXME
-        return -1
+
+
+    
 
     def copy_te(self, te: int, offset: int) -> int | None:
         """
@@ -141,7 +150,7 @@ class ListGenome(Genome):
     def active_tes(self) -> list[int]:
         """Get the active TE IDs."""
         ...  # FIXME
-        return []
+
 
     def __len__(self) -> int:
         """Current length of the genome."""
@@ -160,7 +169,76 @@ class ListGenome(Genome):
         represented with the character '-', active TEs with 'A', and disabled
         TEs with 'x'.
         """
-        return "FIXME"
+
+
+
+class Comparable(Protocol):
+    """Type info for specifying that objects can be compared with <."""
+
+    def __lt__(self, other: Comparable) -> bool:
+        """Less than, <, operator."""
+        ...
+
+T = TypeVar('T')
+S = TypeVar('S', bound=Comparable)
+
+class Link(Generic[T]):
+    """Doubly linked link."""
+
+    val: T
+    prev: Link[T]
+    next: Link[T]
+
+    def __init__(self, val: T, p: Link[T], n: Link[T]):
+        """Create a new link and link up prev and next."""
+        self.val = val
+        self.prev = p
+        self.next = n
+
+def insert_after(link: Link[T], val: T) -> None:
+    """Add a new link containing avl after link."""
+    new_link = Link(val, link, link.next)
+    new_link.prev.next = new_link
+    new_link.next.prev = new_link
+
+def remove_link(link: Link[T]) -> None:
+    """Remove link from the list."""
+    link.prev.next = link.next
+    link.next.prev = link.prev
+
+class DLList(Generic[T]):
+    head: Link[T]  # Dummy head link
+
+    def __init__(self, seq: Iterable[T] = ()):
+        """Create a new circular list from a sequence."""
+        self.head = Link(None, None, None)  # type: ignore
+        self.head.prev = self.head
+        self.head.next = self.head
+        for val in seq:
+            insert_after(self.head.prev, val)
+    
+    def __str__(self) -> str:
+        elms: list[str] = []
+        link = self.head.next
+        while link and link is not self.head:
+            elms.append(str(link.val))
+            link = link.next
+        return f"[{', '.join(elms)}]"
+    __repr__ = __str__  # because why not?
+
+    def __iter__(self) -> Iterable[T]:     #iterator 
+        link = self.head.next
+        while link != self.head:
+            yield link.val
+            link = link.next 
+
+    def __eq__(self, other: DLList):
+        x, y = self.head.next, other.head.next
+        while x != self.head and y != other.head:
+            if x.val != y.val:
+                return False
+            x, y = x.next, y.next
+        return x == self.head and y == other.head 
 
 
 class LinkedListGenome(Genome):
@@ -169,10 +247,11 @@ class LinkedListGenome(Genome):
 
     Implements the Genome interface using linked lists.
     """
-
     def __init__(self, n: int):
         """Create a new genome with length n."""
-        ...  # FIXME
+        ...  
+        seg = ['-']*n
+        Genome.genome = DLList(seg)
 
     def insert_te(self, pos: int, length: int) -> int:
         """
@@ -238,4 +317,4 @@ class LinkedListGenome(Genome):
         represented with the character '-', active TEs with 'A', and disabled
         TEs with 'x'.
         """
-        return "FIXME"
+        return ''.join(self.genome)
