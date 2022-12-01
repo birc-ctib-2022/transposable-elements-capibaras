@@ -16,7 +16,10 @@ from typing import Type
 class Genome(ABC):
     """Representation of a circular enome."""
 
-    # genome : list[str]
+    ## transposable_elements: dict that will contain the active te_s
+    ##                          {id, [pos,length]}
+    transposable_elements = {}
+   
         
     def __init__(self, n: int):
         """Create a genome of size n."""
@@ -99,12 +102,9 @@ class ListGenome(Genome):
 
     Implements the Genome interface using Python's built-in lists
     """
-    ## transposable_elements: dict that will contain the active te_s
-    ##                          {id, [pos,length]}
     transposable_elements = {}
     ## id initializer
     tes_counter = 1
-   
     def __init__(self, n: int):
         """Create a new genome with length n."""
         self.genome = ['-'] * n
@@ -123,20 +123,15 @@ class ListGenome(Genome):
         Returns a new ID for the transposable element.
         """
        
-        ## is there any active te_s in the genome
-        if self.genome[pos] == 'A':
-            ## we need to find the active te and disable it            
-            for id, info in self.transposable_elements.items():
-                ## find the id of the active te in the range pos : pos+length
-                if (info[0] <= pos <= info[0]+info[1]):
+        for id, info in self.transposable_elements.items():
+            ## if new te is Active: find the id in the range pos : pos+length
+            if self.genome[pos] == 'A' and (info[0] <= pos <= info[0]+info[1]):
                     self.disable_te(id)
                     break
-                
-            
-        for id, info in self.transposable_elements.items():
-                ## is there any active before pos? 
-                if (info[0] > pos):
+            ## update positions in dictionary
+            if (info[0] > pos):
                     self.transposable_elements[id] = [info[0]+length,info[1]]
+                      
             
         ## insert the tes in the genome
         self.genome[pos:pos] =length*['A'] 
@@ -171,8 +166,6 @@ class ListGenome(Genome):
             length = self.transposable_elements[te][1]
             
             #print(pos,offset,len(self.genome),insertion_position)
-            
-            
             insertion_position = (pos+offset) % len(self.genome)
             return self.insert_te(insertion_position,length)
 
@@ -216,15 +209,8 @@ class ListGenome(Genome):
         return ''.join(self.genome)
 
 
-class Comparable(Protocol):
-    """Type info for specifying that objects can be compared with <."""
-
-    def __lt__(self, other: Comparable) -> bool:
-        """Less than, <, operator."""
-        ...
 
 T = TypeVar('T')
-S = TypeVar('S', bound=Comparable)
 
 class Link(Generic[T]):
     """Doubly linked link."""
@@ -238,6 +224,8 @@ class Link(Generic[T]):
         self.val = val
         self.prev = p
         self.next = n
+    def __str__(self) -> str:
+        return str(self.val)
 
 def insert_after(link: Link[T], val: T) -> None:
     """Add a new link containing avl after link."""
@@ -245,10 +233,6 @@ def insert_after(link: Link[T], val: T) -> None:
     new_link.prev.next = new_link
     new_link.next.prev = new_link
 
-def remove_link(link: Link[T]) -> None:
-    """Remove link from the list."""
-    link.prev.next = link.next
-    link.next.prev = link.prev
 
 class DLList(Generic[T]):
     head: Link[T]  # Dummy head link
@@ -275,22 +259,30 @@ class DLList(Generic[T]):
         while link != self.head:
             yield link.val
             link = link.next 
-
-    def __eq__(self, other: DLList):
-        x, y = self.head.next, other.head.next
-        while x != self.head and y != other.head:
-            if x.val != y.val:
-                return False
-            x, y = x.next, y.next
-        return x == self.head and y == other.head 
-
+           
+    def insert_n_elements(self,link_of_pos,length):
+        how_long = length
+        while how_long:
+            insert_after(link_of_pos,'A')
+            link_of_pos = link_of_pos.next
+            how_long -= 1
+        
+    def get_position(self, position):
+        if position < 1:  # Just in case the position is too small
+            return
+        current = self.head.next
+        while current and position > 1:
+            position -= 1
+            current = current.next
+        return current
+    
     def __len__(self):
         link = self.head.next
         length = 0
         while link != self.head:
             length += 1
             link = link.next
-        return length
+        return length    
 
 
 class LinkedListGenome(Genome):
@@ -299,12 +291,9 @@ class LinkedListGenome(Genome):
 
     Implements the Genome interface using linked lists.
     """
-    ## transposable_elements: dict that will contain the active te_s
-    ## {id, [pos,length]}
-    transposable_elements = {}
     ## id initializer
     tes_counter = 1
-    genome = DLList()
+    genome:  DLList
 
     def __init__(self, n: int):
         """Create a new genome with length n."""
@@ -325,32 +314,21 @@ class LinkedListGenome(Genome):
 
         Returns a new ID for the transposable element.
         """
-        pos_counter = 0
-        link = self.genome.head.next
-        while pos != pos_counter:
-            if link != self.genome.head:
-                pos_counter += 1
-            link_of_pos = link
-            link = link.next
+        ## get position to insert new te
+        link_of_pos = self.genome.get_position(pos)
         
-        
-        
-        if link_of_pos.val == 'A':
-            for id, info in self.transposable_elements.items():
+        for id, info in self.transposable_elements.items():
+            ## if new te is Active, disable
+            if link_of_pos.val == 'A':
                 if info[0] <= pos <= info[0]+info[1]:
                     self.disable_te(id)
                     break
-
-        how_long = length
-        while how_long:
-            insert_after(link_of_pos,'A')
-            link_of_pos = link_of_pos.next
-            how_long -= 1
-        
-        for id, info in self.transposable_elements.items():
-                ## is there any active before pos? 
-                if (info[0] > pos):
+            ## update positions in dictionary
+            if (info[0] > pos):
                     self.transposable_elements[id] = [info[0]+length,info[1]]
+        
+        ## insert in the linked list
+        self.genome.insert_n_elements(link_of_pos,length)
                     
         id = LinkedListGenome.tes_counter
         self.transposable_elements[id] = [pos,length]  
