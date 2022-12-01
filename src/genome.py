@@ -16,7 +16,7 @@ from typing import Type
 class Genome(ABC):
     """Representation of a circular enome."""
 
-    genome : list[str]
+    # genome : list[str]
         
     def __init__(self, n: int):
         """Create a genome of size n."""
@@ -200,7 +200,7 @@ class ListGenome(Genome):
         represented with the character '-', active TEs with 'A', and disabled
         TEs with 'x'.
         """
-
+        return ''.join(self.genome)
 
 
 class Comparable(Protocol):
@@ -271,6 +271,14 @@ class DLList(Generic[T]):
             x, y = x.next, y.next
         return x == self.head and y == other.head 
 
+    def __len__(self):
+        link = self.head.next
+        length = 0
+        while link != self.head:
+            length += 1
+            link = link.next
+        return length
+
 
 class LinkedListGenome(Genome):
     """
@@ -278,11 +286,18 @@ class LinkedListGenome(Genome):
 
     Implements the Genome interface using linked lists.
     """
+    ## transposable_elements: dict that will contain the active te_s
+    ## {id, [pos,length]}
+    transposable_elements = {}
+    ## id initializer
+    tes_counter = 1
+    genome = DLList()
+
     def __init__(self, n: int):
         """Create a new genome with length n."""
         ...  
         seg = ['-']*n
-        Genome.genome = DLList(seg)
+        self.genome = DLList(seg)
 
     def insert_te(self, pos: int, length: int) -> int:
         """
@@ -297,8 +312,32 @@ class LinkedListGenome(Genome):
 
         Returns a new ID for the transposable element.
         """
+        pos_counter = 0
+        link = self.genome.head.next
+        while pos != pos_counter:
+            if link != self.genome.head:
+                pos_counter += 1
+            link_of_pos = link
+            link = link.next
         
-        return -1
+        
+        
+        if link_of_pos.val == 'A':
+            for id, info in self.transposable_elements.items():
+                if info[0] <= pos <= info[0]+info[1]:
+                    self.disable_te(id)
+                    break
+
+        how_long = length
+        while how_long:
+            insert_after(link_of_pos,'A')
+            link_of_pos = link_of_pos.next
+            how_long -= 1
+        id = LinkedListGenome.tes_counter
+        self.transposable_elements[id] = [pos,length]  
+        LinkedListGenome.tes_counter += 1  
+        return id
+    
 
     def copy_te(self, te: int, offset: int) -> int | None:
         """
@@ -314,6 +353,14 @@ class LinkedListGenome(Genome):
 
         If te is not active, return None (and do not copy it).
         """
+        ## If te is not active, return None 
+        if te not in self.transposable_elements.keys():
+            return None
+        else:
+            pos = self.transposable_elements[te][0]
+            length = self.transposable_elements[te][1]
+            insertion_position = (pos+offset) % len(self.genome)
+            return self.insert_te(insertion_position,length)
         
 
     def disable_te(self, te: int) -> None:
@@ -324,12 +371,27 @@ class LinkedListGenome(Genome):
         TEs are already inactive, so there is no need to do anything
         for those.
         """
+        how_long = self.transposable_elements[te][1]
+        active_counter = 0
+        link = self.genome.head.next
+        for id, info in self.transposable_elements.items():
+            if id == te:
+                while info[0] != active_counter:
+                    link =  link.next
+                    active_counter += 1
         
+        while how_long:
+            link.val = 'x'
+            link = link.next
+            how_long -= 1
+        self.transposable_elements.pop(te)
+        
+
 
     def active_tes(self) -> list[int]:
         """Get the active TE IDs."""
         # FIXME
-        return []
+        return list(self.transposable_elements.keys())
 
     def __len__(self) -> int:
         """Current length of the genome."""
