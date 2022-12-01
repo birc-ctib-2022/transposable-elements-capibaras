@@ -122,6 +122,7 @@ class ListGenome(Genome):
 
         Returns a new ID for the transposable element.
         """
+       
         ## is there any active te_s in the genome
         if self.genome[pos] == 'A':
             ## we need to find the active te and disable it            
@@ -130,6 +131,12 @@ class ListGenome(Genome):
                 if (info[0] <= pos <= info[0]+info[1]):
                     self.disable_te(id)
                     break
+                
+            
+        for id, info in self.transposable_elements.items():
+                ## is there any active before pos? 
+                if (info[0] > pos):
+                    self.transposable_elements[id] = [info[0]+length,info[1]]
             
         ## insert the tes in the genome
         self.genome[pos:pos] =length*['A'] 
@@ -138,6 +145,8 @@ class ListGenome(Genome):
         id = ListGenome.tes_counter
         self.transposable_elements[id] = [pos,length]  
         ListGenome.tes_counter += 1  
+        
+        #print(self.transposable_elements)
         return id
         
     def copy_te(self, te: int, offset: int) -> int | None:
@@ -160,6 +169,10 @@ class ListGenome(Genome):
         else:
             pos = self.transposable_elements[te][0]
             length = self.transposable_elements[te][1]
+            
+            #print(pos,offset,len(self.genome),insertion_position)
+            
+            
             insertion_position = (pos+offset) % len(self.genome)
             return self.insert_te(insertion_position,length)
 
@@ -333,6 +346,12 @@ class LinkedListGenome(Genome):
             insert_after(link_of_pos,'A')
             link_of_pos = link_of_pos.next
             how_long -= 1
+        
+        for id, info in self.transposable_elements.items():
+                ## is there any active before pos? 
+                if (info[0] > pos):
+                    self.transposable_elements[id] = [info[0]+length,info[1]]
+                    
         id = LinkedListGenome.tes_counter
         self.transposable_elements[id] = [pos,length]  
         LinkedListGenome.tes_counter += 1  
