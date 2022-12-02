@@ -358,7 +358,7 @@ class LinkedListGenome(Genome):
             length = self.transposable_elements[te][1]
             insertion_position = (pos+offset) % len(self.genome)
             return self.insert_te(insertion_position,length)
-        
+   
 
     def disable_te(self, te: int) -> None:
         """
