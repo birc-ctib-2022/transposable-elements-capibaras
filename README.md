@@ -99,7 +99,25 @@ You are free to implement the genome classes however you want, and using whateer
 ## Complexity
 
 When you have implemented the two (or more) classes, describe the complexity of each operation as a function of the genome size (at the time of the operation), and the size of the TE involved (and when copying, the offset you are copying). Put the description here:
+- Python lists 
+    - def __init_  ## 0(n)
+    - def insert_te(self, pos: int, length: int) -> int  ## 0(n+m+z)
+    - def disable_te ## 0(m)
+    - def copy_te ## 0(n+m+z)
+    - def active_tes ## 0(z)
+    - def __len_ ## 0(n)
+    - def __str_ ## 0(n)
+- Linked list genome
+    - def __init_  ## 0(n)
+    - def insert_te(self, pos: int, length: int) -> int  ## 0(z^2*n+m)
+    - def disable_te ## 0(z*n+m)
+    - def copy_te ## 0(z^2*n+m)
+    - def active_tes ## 0(z)
+    - def __len_ ## 0(n)
+    - def __str_ ## 0(n)
 
-**FIXME: OPERATION COMPLEXITY**
+
+
+
 
 In `src/simulate.py` you will find a program that can run simulations and tell you actual time it takes to simulate with different implementations. You can use it to test your analysis. You can modify the parameters to the simulator if you want to explore how they affect the running time.
